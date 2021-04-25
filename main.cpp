@@ -124,18 +124,21 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
         if (diff.empty()) {
             continue;
         }
+        int tail_first = path_prev.size();
+        int tail_last = path_prev.size();
         if (used_pos_prev[y][x]) {
-            int end = start;
-            while (end < path_prev.size() and path_prev[end] != pack_point(y, x)) {
-                ++ end;
+            tail_first = start;
+            while (tail_first < path_prev.size() and path_prev[tail_first] != pack_point(y, x)) {
+                ++ tail_first;
             }
-            assert (end < path_prev.size());
-            REP3 (i, end + 1, path_prev.size()) {
+            assert (tail_first < path_prev.size());
+            ++ tail_first;
+            REP3 (i, tail_first, path_prev.size()) {
                 auto [y, x] = unpack_point(path_prev[i]);
                 if (used_tile_next[tile[y][x]]) {
+                    tail_last = i;
                     break;
                 }
-                diff.push_back(path_prev[i]);
                 score_next += point[y][x];
                 used_tile_next[tile[y][x]] = true;
             }
@@ -154,6 +157,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
 #endif  // LOCAL
             }
 
+            diff.insert(diff.end(), path_prev.begin() + tail_first, path_prev.begin() + tail_last);
             path_prev.resize(start);
             path_prev.insert(path_prev.end(), ALL(diff));
             used_tile_prev = used_tile_next;
