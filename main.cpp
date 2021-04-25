@@ -32,20 +32,19 @@ private:
 constexpr int N = 50;
 
 constexpr array<int, 4> DIRS = {{0, 1, 2, 3}};
-constexpr array<char, 4> DIR_LETTER = {'U', 'D', 'R', 'L'};
 constexpr array<int, 4> DIR_Y = {-1, 1, 0, 0};
 constexpr array<int, 4> DIR_X = {0, 0, 1, -1};
 inline bool is_on_tiles(int y, int x) {
     return 0 <= y and y < N and 0 <= x and x < N;
 }
 
-struct beam_state {
-    string command;
-    vector<bool> used;
-    int score;
-    int8_t y;
-    int8_t x;
-};
+inline uint16_t pack_point(int y, int x) {
+    return (y << 8) + x;
+}
+
+inline pair<int, int> unpack_point(int packed) {
+    return {packed >> 8, packed & ((1 << 8) - 1)};
+}
 
 template <class RandomEngine>
 string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, const array<array<int, N>, N>& point, RandomEngine& gen, chrono::high_resolution_clock::time_point clock_end) {
@@ -58,56 +57,142 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
         }
     }
 
-    vector<shared_ptr<beam_state> > cur;
-    {
-        shared_ptr<beam_state> initial = make_shared<beam_state>();
-        initial->y = sy;
-        initial->x = sx;
-        initial->used.resize(M);
-        initial->used[tile[sy][sx]] = true;
-        initial->score = point[sy][sx];
-        cur.push_back(initial);
-    }
-    shared_ptr<beam_state> result = cur.back();
+    vector<uint16_t> path_prev;
+    path_prev.push_back(pack_point(sy, sx));
+    vector<bool> used_tile_prev(M);
+    used_tile_prev[tile[sy][sx]] = true;
+    array<array<bool, N>, N> used_pos_prev = {};
+    used_pos_prev[sy][sx] = true;
+    int score_prev = point[sy][sx];
 
-    while (not cur.empty()) {
-        chrono::high_resolution_clock::time_point clock_now = chrono::high_resolution_clock::now();
-        if (clock_end <= clock_now) {
-            break;
-        }
+    vector<uint16_t> result = path_prev;
+    int highscore = score_prev;
 
-        vector<shared_ptr<beam_state> > prv;
-        cur.swap(prv);
-        for (auto& s : prv) {
-            for (int dir : DIRS) {
-                int ny = s->y + DIR_Y[dir];
-                int nx = s->x + DIR_X[dir];
-                if (is_on_tiles(ny, nx) and not s->used[tile[ny][nx]]) {
-                    shared_ptr<beam_state> t = make_shared<beam_state>(*s);
-                    t->y = ny;
-                    t->x = nx;
-                    t->command.push_back(DIR_LETTER[dir]);
-                    t->used[tile[ny][nx]] = true;
-                    t->score += point[ny][nx];
-                    cur.push_back(t);
-                }
+    // simulated annealing
+    int64_t iteration = 0;
+    double temperature = 1.0;
+    for (; ; ++ iteration) {
+        if (iteration % 64 == 0) {
+            chrono::high_resolution_clock::time_point clock_now = chrono::high_resolution_clock::now();
+            temperature = static_cast<long double>((clock_end - clock_now).count()) / (clock_end - clock_begin).count();
+            if (temperature <= 0.0) {
+                cerr << "done  (iteration = " << iteration << ")" << endl;
+                break;
             }
         }
-        constexpr int WIDTH = 1000;
-        if (cur.size() > WIDTH) {
-            partial_sort(cur.begin(), cur.begin() + WIDTH, cur.end(), [&](const shared_ptr<beam_state>& a, const shared_ptr<beam_state>& b) {
-                return a->score > b->score;
-            });
-            cur.resize(WIDTH);
+
+        int start = uniform_int_distribution<int>(0, (int)path_prev.size() - 1)(gen);
+        int score_next = 0;
+        vector<bool> used_tile_next(M);
+        array<array<bool, N>, N> used_pos_next = {};
+        vector<uint16_t> path_next;
+        REP (i, start + 1) {
+            auto [y, x] = unpack_point(path_prev[i]);
+            path_next.push_back(path_prev[i]);
+            score_next += point[y][x];
+            used_tile_next[tile[y][x]] = true;
+            used_pos_next[y][x] = true;
         }
-        if (not cur.empty() and result->score < cur.front()->score) {
-            result = cur.front();
+        auto [y, x] = unpack_point(path_prev[start]);
+        while (true) {
+            array<int, 4> dirs = {{0, 1, 2, 3}};
+            shuffle(ALL(dirs), gen);
+            bool found = false;
+            for (int dir : dirs) {
+                int ny = y + DIR_Y[dir];
+                int nx = x + DIR_X[dir];
+                if (not is_on_tiles(ny, nx)) {
+                    continue;
+                }
+                if ((int)path_next.size() == start + 1 and start + 1 < path_prev.size() and path_prev[start + 1] == pack_point(ny, nx)) {
+                    continue;
+                }
+                if (not used_tile_next[tile[ny][nx]]) {
+                    found = true;
+                    path_next.push_back(pack_point(ny, nx));
+                    y = ny;
+                    x = nx;
+                    used_tile_next[tile[y][x]] = true;
+                    used_pos_next[y][x] = true;
+                    score_next += point[y][x];
+                    break;
+                }
+            }
+            if (not found) {
+                break;
+            }
+            if (used_pos_prev[y][x]) {
+                break;
+            }
+        }
+        if ((int)path_next.size() == start + 1) {
+            continue;
+        }
+        if (used_pos_prev[y][x]) {
+            int end = start + 1;
+            while (end < path_prev.size() and path_prev[end] != pack_point(y, x)) {
+                ++ end;
+            }
+            assert (end < path_prev.size());
+            REP3 (i, end + 1, path_prev.size()) {
+                auto [y, x] = unpack_point(path_prev[i]);
+                if (used_tile_next[tile[y][x]]) {
+                    break;
+                }
+                path_next.push_back(path_prev[i]);
+                score_next += point[y][x];
+                used_tile_next[tile[y][x]] = true;
+                used_pos_next[y][x] = true;
+            }
+        }
+
+        int delta = score_next - score_prev;
+        auto probability = [&]() {
+            constexpr long double boltzmann = 0.01;
+            return exp(boltzmann * delta) * temperature;
+        };
+        if (delta >= 0 or bernoulli_distribution(probability())(gen)) {
+            // accept
+            if (delta < 0) {
+#ifdef LOCAL
+                cerr << "decreasing move  (delta = " << delta << ", iteration = " << iteration << ")" << endl;
+#endif  // LOCAL
+            }
+            if (highscore < score_next) {
+                highscore = score_next;
+                result = path_next;
+#ifdef LOCAL
+                cerr << "highscore = " << highscore << "  (iteration = " << iteration << ")" << endl;
+#endif  // LOCAL
+            }
+
+            path_prev = path_next;
+            used_tile_prev = used_tile_next;
+            used_pos_prev = used_pos_next;
+            score_prev = score_next;
         }
     }
 
-    cerr << "ans = " << result->command << endl;
-    cerr << "score = " << result->score << endl;
-    return result->command;
+    string ans;
+    assert (not result.empty());
+    REP (i, (int)result.size() - 1) {
+        auto [ay, ax] = unpack_point(result[i]);
+        auto [by, bx] = unpack_point(result[i + 1]);
+        if (by == ay - 1 and bx == ax) {
+            ans.push_back('U');
+        } else if (by == ay + 1 and bx == ax) {
+            ans.push_back('D');
+        } else if (by == ay and bx == ax + 1) {
+            ans.push_back('R');
+        } else if (by == ay and bx == ax - 1) {
+            ans.push_back('L');
+        } else {
+            assert (false);
+        }
+    }
+    cerr << "ans = " << ans << endl;
+    cerr << "score = " << highscore << endl;
+    return ans;
 }
 
 int main() {
