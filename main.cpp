@@ -81,16 +81,16 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
             }
         }
 
-        int start = uniform_int_distribution<int>(0, (int)path_prev.size() - 1)(gen);
+        int start = uniform_int_distribution<int>(1, path_prev.size())(gen);
         int score_next = 0;
         vector<char> used_tile_next(M);
         vector<uint16_t> diff;
-        REP (i, start + 1) {
+        REP (i, start) {
             auto [y, x] = unpack_point(path_prev[i]);
             score_next += point[y][x];
             used_tile_next[tile[y][x]] = true;
         }
-        auto [y, x] = unpack_point(path_prev[start]);
+        auto [y, x] = unpack_point(path_prev[start - 1]);
         while (true) {
             array<int, 4> dirs = {{0, 1, 2, 3}};
             shuffle(ALL(dirs), gen);
@@ -101,7 +101,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
                 if (not is_on_tiles(ny, nx)) {
                     continue;
                 }
-                if (diff.empty() and start + 1 < path_prev.size() and path_prev[start + 1] == pack_point(ny, nx)) {
+                if (diff.empty() and start < path_prev.size() and path_prev[start] == pack_point(ny, nx)) {
                     continue;
                 }
                 if (not used_tile_next[tile[ny][nx]]) {
@@ -125,7 +125,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
             continue;
         }
         if (used_pos_prev[y][x]) {
-            int end = start + 1;
+            int end = start;
             while (end < path_prev.size() and path_prev[end] != pack_point(y, x)) {
                 ++ end;
             }
@@ -154,7 +154,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
 #endif  // LOCAL
             }
 
-            path_prev.resize(start + 1);
+            path_prev.resize(start);
             path_prev.insert(path_prev.end(), ALL(diff));
             used_tile_prev = used_tile_next;
             used_pos_prev = {};
