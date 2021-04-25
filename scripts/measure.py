@@ -1,5 +1,6 @@
 import argparse
 import concurrent.futures
+import math
 import os
 import pathlib
 import subprocess
@@ -46,13 +47,17 @@ def main() -> 'NoReturn':
     parser.add_argument('-c', '--command', default='./a.out')
     parser.add_argument('-n', '--count', type=int, default=50)
     parser.add_argument('-j', '--jobs', type=int, default=2)
+    parser.add_argument('--same', action='store_true')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
 
     basicConfig(level=DEBUG)
 
     # gen
-    seeds = [args.seed + i for i in range(args.count)]
+    if args.same:
+        seeds = [args.seed for i in range(args.count)]
+    else:
+        seeds = [args.seed + i for i in range(args.count)]
     gen(seeds=seeds)
 
     # run
@@ -73,7 +78,14 @@ def main() -> 'NoReturn':
         score = vis(input_path=input_path, output_path=output_path, vis_path=vis_path, seed=seed)
         scores.append(score)
         logger.info('seed = {}: score = {}'.format(seed, score))
-    logger.info('100 * average = %d', int(100 * sum(scores) / len(scores)))
+    average = sum(scores) / len(scores)
+    if args.same:
+        logger.info('average = %s', average)
+        logger.info('min = %s', min(scores))
+        logger.info('max = %s', max(scores))
+        logger.info('standard deviation = %s', math.sqrt(sum([(score - average)**2 for score in scores]) / len(scores)))
+    else:
+        logger.info('100 * average = %s', int(100 * average))
 
     if min(scores) <= 0:
         sys.exit(1)
