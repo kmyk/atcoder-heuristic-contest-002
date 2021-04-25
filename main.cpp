@@ -148,7 +148,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
         int delta = score_next - score_prev.back();
         auto probability = [&]() {
             constexpr long double boltzmann = 0.01;
-            return exp(boltzmann * delta) * temperature;
+            return exp(boltzmann * delta / temperature);
         };
         if (delta >= 0 or bernoulli_distribution(probability())(gen)) {
             // accept
