@@ -63,10 +63,12 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
     used_tile_prev[tile[sy][sx]] = true;
     array<array<bool, N>, N> used_pos_prev = {};
     used_pos_prev[sy][sx] = true;
-    int score_prev = point[sy][sx];
+    vector<int> score_prev;
+    score_prev.push_back(0);
+    score_prev.push_back(point[sy][sx]);
 
     vector<uint16_t> result = path_prev;
-    int highscore = score_prev;
+    int highscore = score_prev.back();
 
     // simulated annealing
     int64_t iteration = 0;
@@ -82,14 +84,13 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
         }
 
         int start = uniform_int_distribution<int>(1, path_prev.size())(gen);
-        int score_next = 0;
         vector<char> used_tile_next(M);
         vector<uint16_t> diff;
         REP (i, start) {
             auto [y, x] = unpack_point(path_prev[i]);
-            score_next += point[y][x];
             used_tile_next[tile[y][x]] = true;
         }
+        int score_next = score_prev[start];
         auto [y, x] = unpack_point(path_prev[start - 1]);
         while (true) {
             array<int, 4> dirs = {{0, 1, 2, 3}};
@@ -139,12 +140,12 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
                     tail_last = i;
                     break;
                 }
-                score_next += point[y][x];
                 used_tile_next[tile[y][x]] = true;
             }
         }
+        score_next += score_prev[tail_last] - score_prev[tail_first];
 
-        int delta = score_next - score_prev;
+        int delta = score_next - score_prev.back();
         auto probability = [&]() {
             constexpr long double boltzmann = 0.01;
             return exp(boltzmann * delta) * temperature;
@@ -162,14 +163,16 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
             path_prev.insert(path_prev.end(), ALL(diff));
             used_tile_prev = used_tile_next;
             used_pos_prev = {};
-            for (uint16_t packed : path_prev) {
-                auto [y, x] = unpack_point(packed);
+            score_prev.clear();
+            score_prev.push_back(0);
+            REP (i, path_prev.size()) {
+                auto [y, x] = unpack_point(path_prev[i]);
                 used_pos_prev[y][x] = true;
+                score_prev.push_back(score_prev.back() + point[y][x]);
             }
-            score_prev = score_next;
 
-            if (highscore < score_prev) {
-                highscore = score_prev;
+            if (highscore < score_prev.back()) {
+                highscore = score_prev.back();
                 result = path_prev;
 #ifdef LOCAL
                 cerr << "highscore = " << highscore << "  (iteration = " << iteration << ")" << endl;
