@@ -37,7 +37,8 @@ def vis(*, input_path: pathlib.Path, output_path: pathlib.Path, vis_path: pathli
         logger.exception('failed for seed = %d', seed)
         return 0
     os.rename('out.svg', vis_path)
-    assert score_bytes.startswith(b'Score = ')
+    if not score_bytes.startswith(b'Score = '):
+        raise RuntimeError(score_bytes.decode())
     return int(score_bytes.split()[2])
 
 
