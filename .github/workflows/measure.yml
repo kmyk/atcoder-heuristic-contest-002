@@ -21,6 +21,11 @@ jobs:
     - name: Install dependencies
       run: pip3 install -r scripts/requirements.txt
 
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+
     - name: Prepare tools/
       run: |
         wget https://img.atcoder.jp/ahc002/c993bb7f09d9f8857fc90951fc6af11d.zip
