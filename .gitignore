@@ -8,3 +8,4 @@ in/
 # scripts/measure.py
 seeds.txt
 out/
+vis/
