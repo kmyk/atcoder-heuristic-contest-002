@@ -15,8 +15,7 @@ def gen(*, seeds: List[int]) -> None:
     with open('seeds.txt', 'w') as fh:
         for seed in seeds:
             print(seed, file=fh)
-    with open('seeds.txt') as fh:
-        subprocess.check_call(['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--release', '--bin', 'gen'], stdin=fh)
+    subprocess.check_call(['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--release', '--bin', 'gen', 'seeds.txt'])
 
 
 def run(*, command: str, input_path: pathlib.Path, output_path: pathlib.Path, seed: int) -> None:
