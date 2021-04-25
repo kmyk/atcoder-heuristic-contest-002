@@ -73,7 +73,7 @@ def main() -> 'NoReturn':
         score = vis(input_path=input_path, output_path=output_path, vis_path=vis_path, seed=seed)
         scores.append(score)
         logger.info('seed = {}: score = {}'.format(seed, score))
-    logger.info('50 * average = %d', int(50 * sum(scores) / len(scores)))
+    logger.info('100 * average = %d', int(100 * sum(scores) / len(scores)))
 
     if min(scores) <= 0:
         sys.exit(1)
