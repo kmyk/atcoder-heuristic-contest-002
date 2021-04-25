@@ -8,4 +8,7 @@ in/
 # scripts/measure.py
 seeds.txt
 out/
-vis/
+vis/*.svg
+!vis/0000.svg
+!vis/0001.svg
+!vis/0002.svg
