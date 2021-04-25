@@ -16,7 +16,7 @@ def gen(*, seeds: List[int]) -> None:
         for seed in seeds:
             print(seed, file=fh)
     with open('seeds.txt') as fh:
-        subprocess.check_call(['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--bin', 'gen'], stdin=fh)
+        subprocess.check_call(['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--release', '--bin', 'gen'], stdin=fh)
 
 
 def run(*, command: str, input_path: pathlib.Path, output_path: pathlib.Path, seed: int) -> None:
@@ -32,12 +32,13 @@ def run(*, command: str, input_path: pathlib.Path, output_path: pathlib.Path, se
 def vis(*, input_path: pathlib.Path, output_path: pathlib.Path, vis_path: pathlib.Path, seed: int) -> int:
     logger.info('running the visualizer for seed %d...', seed)
     try:
-        score_str = subprocess.check_output(['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--bin', 'vis', '--', str(input_path), str(output_path)])
+        score_bytes = subprocess.check_output(['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--release', '--bin', 'vis', '--', str(input_path), str(output_path)])
     except subprocess.SubprocessError:
         logger.exception('failed for seed = %d', seed)
         return 0
     os.rename('out.svg', vis_path)
-    return int(score_str)
+    assert score_bytes.startswith(b'Score = ')
+    return int(score_bytes.split()[2])
 
 
 def main() -> 'NoReturn':
