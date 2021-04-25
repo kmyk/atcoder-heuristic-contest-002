@@ -1,0 +1,10 @@
+# 入力ジェネレータ・ビジュアライザ
+*.zip
+tools/
+
+# 入力データ
+in/
+
+# scripts/measure.py
+seeds.txt
+out/
