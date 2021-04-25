@@ -85,10 +85,9 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
         int score_next = 0;
         vector<bool> used_tile_next(M);
         array<array<bool, N>, N> used_pos_next = {};
-        vector<uint16_t> path_next;
+        vector<uint16_t> diff;
         REP (i, start + 1) {
             auto [y, x] = unpack_point(path_prev[i]);
-            path_next.push_back(path_prev[i]);
             score_next += point[y][x];
             used_tile_next[tile[y][x]] = true;
             used_pos_next[y][x] = true;
@@ -104,12 +103,12 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
                 if (not is_on_tiles(ny, nx)) {
                     continue;
                 }
-                if ((int)path_next.size() == start + 1 and start + 1 < path_prev.size() and path_prev[start + 1] == pack_point(ny, nx)) {
+                if (diff.empty() and start + 1 < path_prev.size() and path_prev[start + 1] == pack_point(ny, nx)) {
                     continue;
                 }
                 if (not used_tile_next[tile[ny][nx]]) {
                     found = true;
-                    path_next.push_back(pack_point(ny, nx));
+                    diff.push_back(pack_point(ny, nx));
                     y = ny;
                     x = nx;
                     used_tile_next[tile[y][x]] = true;
@@ -125,7 +124,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
                 break;
             }
         }
-        if ((int)path_next.size() == start + 1) {
+        if (diff.empty()) {
             continue;
         }
         if (used_pos_prev[y][x]) {
@@ -139,7 +138,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
                 if (used_tile_next[tile[y][x]]) {
                     break;
                 }
-                path_next.push_back(path_prev[i]);
+                diff.push_back(path_prev[i]);
                 score_next += point[y][x];
                 used_tile_next[tile[y][x]] = true;
                 used_pos_next[y][x] = true;
@@ -158,18 +157,20 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
                 cerr << "decreasing move  (delta = " << delta << ", iteration = " << iteration << ")" << endl;
 #endif  // LOCAL
             }
-            if (highscore < score_next) {
-                highscore = score_next;
-                result = path_next;
+
+            path_prev.resize(start + 1);
+            path_prev.insert(path_prev.end(), ALL(diff));
+            used_tile_prev = used_tile_next;
+            used_pos_prev = used_pos_next;
+            score_prev = score_next;
+
+            if (highscore < score_prev) {
+                highscore = score_prev;
+                result = path_prev;
 #ifdef LOCAL
                 cerr << "highscore = " << highscore << "  (iteration = " << iteration << ")" << endl;
 #endif  // LOCAL
             }
-
-            path_prev = path_next;
-            used_tile_prev = used_tile_next;
-            used_pos_prev = used_pos_next;
-            score_prev = score_next;
         }
     }
 
