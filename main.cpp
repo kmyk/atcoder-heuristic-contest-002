@@ -59,7 +59,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
 
     vector<uint16_t> path_prev;
     path_prev.push_back(pack_point(sy, sx));
-    vector<bool> used_tile_prev(M);
+    vector<char> used_tile_prev(M);
     used_tile_prev[tile[sy][sx]] = true;
     array<array<bool, N>, N> used_pos_prev = {};
     used_pos_prev[sy][sx] = true;
@@ -83,7 +83,7 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
 
         int start = uniform_int_distribution<int>(0, (int)path_prev.size() - 1)(gen);
         int score_next = 0;
-        vector<bool> used_tile_next(M);
+        vector<char> used_tile_next(M);
         array<array<bool, N>, N> used_pos_next = {};
         vector<uint16_t> diff;
         REP (i, start + 1) {
