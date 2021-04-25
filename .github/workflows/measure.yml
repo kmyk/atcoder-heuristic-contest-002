@@ -44,6 +44,10 @@ jobs:
         wget https://img.atcoder.jp/ahc002/c993bb7f09d9f8857fc90951fc6af11d.zip
         unzip c993bb7f09d9f8857fc90951fc6af11d.zip
 
+    - name: Build the visualizer
+      run: |
+        cargo build --manifest-path=tools/Cargo.toml --release
+
     - name: Compile the code
       run: |
         g++ -std=c++17 -Wall -O2 -Iac-library main.cpp
