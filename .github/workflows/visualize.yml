@@ -9,6 +9,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Install ffmpeg
+      run: sudo apt-get install ffmpeg
+
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
