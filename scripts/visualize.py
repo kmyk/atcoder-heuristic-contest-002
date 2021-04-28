@@ -103,7 +103,7 @@ def main() -> 'NoReturn':
         logger.info('index = {}: score = {}'.format(i, score))
 
     # generate video
-    command = ['ffmpeg', '-framerate', '60', '-pix_fmt', 'yuv420p', '-pattern_type', 'glob', '-i', str(pathlib.Path('vis', '*.svg')), 'vis/out.mp4']
+    command = ['ffmpeg', '-pattern_type', 'glob', '-i', str(pathlib.Path('vis', '*.svg')), '-framerate', '60', '-vcodec', 'libx264', '-pix_fmt', 'yuv420p', 'vis/out.mp4']
     subprocess.check_call(command)
 
     if min(scores) <= 0:
