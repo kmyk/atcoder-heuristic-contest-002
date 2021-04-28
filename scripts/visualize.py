@@ -52,7 +52,7 @@ def vis(*, input_path: pathlib.Path, output_path: pathlib.Path, vis_path: pathli
     with tempfile.TemporaryDirectory() as tempdir_:
         tempdir = pathlib.Path(tempdir_)
         try:
-            command = ['cargo', 'run', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml').resolve()), '--release', '--bin', 'vis', '--', str(input_path.resolve()), str(output_path.resolve())]
+            command = [str((pathlib.Path.cwd() / 'tools' / 'target' / 'release' / 'vis').resolve()), str(input_path.resolve()), str(output_path.resolve())]
             score_bytes = subprocess.check_output(command, cwd=tempdir)
         except subprocess.SubprocessError as e:
             raise RuntimeError('failed for index = %d' % index) from e
@@ -86,12 +86,19 @@ def main() -> 'NoReturn':
     with open(output_path, 'rb') as fh:
         outputs = parse_result(stdout=proc.stdout, stderr=fh)
     logger.info('%d states found', len(outputs))
+    if len(outputs) > 4096:
+        logger.info('too many states')
+        sys.exit(1)
 
     # vis
-    shutil.rmtree(pathlib.Path('vis'))
+    if pathlib.Path('vis').exists():
+        shutil.rmtree(pathlib.Path('vis'))
     pathlib.Path('vis').mkdir()
+    logger.info('build the visualizer...')
+    command = ['cargo', 'build', '--manifest-path', str(pathlib.Path('tools', 'Cargo.toml')), '--release', '--bin', 'gen']
+    subprocess.check_output(command)
     score_futures: List[concurrent.futures.Future] = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs) as executor:
         for i, output in enumerate(outputs):
             output_path = pathlib.Path('out', '%04d.txt' % i)
             vis_path = pathlib.Path('vis', '%04d.svg' % i)
