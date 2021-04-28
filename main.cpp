@@ -46,6 +46,27 @@ inline pair<int, int> unpack_point(int packed) {
     return {packed >> 8, packed & ((1 << 8) - 1)};
 }
 
+string convert_to_command_string(const vector<uint16_t>& result) {
+    assert (not result.empty());
+    string ans;
+    REP (i, (int)result.size() - 1) {
+        auto [ay, ax] = unpack_point(result[i]);
+        auto [by, bx] = unpack_point(result[i + 1]);
+        if (by == ay - 1 and bx == ax) {
+            ans.push_back('U');
+        } else if (by == ay + 1 and bx == ax) {
+            ans.push_back('D');
+        } else if (by == ay and bx == ax + 1) {
+            ans.push_back('R');
+        } else if (by == ay and bx == ax - 1) {
+            ans.push_back('L');
+        } else {
+            assert (false);
+        }
+    }
+    return ans;
+}
+
 template <class RandomEngine>
 string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, const array<array<int, N>, N>& point, RandomEngine& gen, chrono::high_resolution_clock::time_point clock_end) {
     chrono::high_resolution_clock::time_point clock_begin = chrono::high_resolution_clock::now();
@@ -69,6 +90,12 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
 
     vector<uint16_t> result = path_prev;
     int highscore = score_prev.back();
+#ifdef DUMP_UPDATE
+    int highscore_index = 0;
+    cerr << "-----BEGIN-----" << endl;
+    cerr << convert_to_command_string(result) << endl;
+    cerr << "-----END-----" << endl;
+#endif  // PRINT_UPDATE
 
     // simulated annealing
     int64_t iteration = 0;
@@ -153,9 +180,9 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
         if (delta >= 0 or bernoulli_distribution(probability())(gen)) {
             // accept
             if (delta < 0) {
-#ifdef LOCAL
+#ifdef PRINT_UPDATE
                 cerr << "decreasing move  (delta = " << delta << ", iteration = " << iteration << ")" << endl;
-#endif  // LOCAL
+#endif  // PRINT_UPDATE
             }
 
             diff.insert(diff.end(), path_prev.begin() + tail_first, path_prev.begin() + tail_last);
@@ -175,30 +202,19 @@ string solve(const int sy, const int sx, const array<array<int, N>, N>& tile, co
             if (highscore < score_prev.back()) {
                 highscore = score_prev.back();
                 result = path_prev;
-#ifdef LOCAL
+#ifdef PRINT_UPDATE
                 cerr << "highscore = " << highscore << "  (iteration = " << iteration << ")" << endl;
-#endif  // LOCAL
+#endif  // PRINT_UPDATE
+#ifdef DUMP_UPDATE
+                cerr << "-----BEGIN-----" << endl;
+                cerr << convert_to_command_string(result) << endl;
+                cerr << "-----END-----" << endl;
+#endif  // PRINT_UPDATE
             }
         }
     }
 
-    string ans;
-    assert (not result.empty());
-    REP (i, (int)result.size() - 1) {
-        auto [ay, ax] = unpack_point(result[i]);
-        auto [by, bx] = unpack_point(result[i + 1]);
-        if (by == ay - 1 and bx == ax) {
-            ans.push_back('U');
-        } else if (by == ay + 1 and bx == ax) {
-            ans.push_back('D');
-        } else if (by == ay and bx == ax + 1) {
-            ans.push_back('R');
-        } else if (by == ay and bx == ax - 1) {
-            ans.push_back('L');
-        } else {
-            assert (false);
-        }
-    }
+    string ans = convert_to_command_string(result);
     cerr << "ans = " << ans << endl;
     cerr << "score = " << highscore << endl;
     return ans;
